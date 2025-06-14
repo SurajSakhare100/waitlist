@@ -41,23 +41,14 @@ export default function SignupPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // Sign in the user after successful signup
-        const result = await signIn('credentials', {
-          email,
-          password,
-          redirect: false,
-        })
-
-        if (result?.error) {
-          setError('Failed to sign in after signup')
-        } else {
-          router.push('/dashboard')
-        }
+        // Show success message and redirect to signin
+        alert('Account created successfully! Please check your email to verify your account.')
+        router.push('/auth/login')
       } else {
-        setError(data.message || 'Signup failed')
+        throw new Error(data.error || 'Failed to create account')
       }
     } catch (error) {
-      setError('An error occurred. Please try again.')
+      setError(error instanceof Error ? error.message : 'Failed to create account')
     } finally {
       setIsLoading(false)
     }

@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken'
 import dbConnect from '@/lib/mongodb'
 import User from '@/models/User'
 import { sendVerificationEmail, generateVerificationToken } from '@/lib/email'
-
+import crypto from "crypto";
 export async function POST(request: NextRequest) {
   try {
     await dbConnect()
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10)
 
     // Generate verification token
-    const verificationToken = await generateVerificationToken()
+    const token = crypto.randomBytes(32).toString("hex");
     const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
     // Create user
@@ -39,12 +39,12 @@ export async function POST(request: NextRequest) {
       name,
       email,
       password: hashedPassword,
-      verificationToken,
+      verificationToken:token,
       verificationTokenExpiry,
     })
 
     // Send verification email
-    await sendVerificationEmail(email, verificationToken)
+    await sendVerificationEmail(email, token)
 
     return NextResponse.json({
       message: 'User created successfully. Please check your email to verify your account.',

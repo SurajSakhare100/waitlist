@@ -28,6 +28,13 @@ export async function GET(request: Request) {
       );
     }
 
+    if (user.isVerified) {
+      return NextResponse.json({
+        message: 'Email already verified',
+        verified: true
+      });
+    }
+
     // Update user verification status
     user.isVerified = true;
     user.verificationToken = undefined;
@@ -35,7 +42,13 @@ export async function GET(request: Request) {
     await user.save();
 
     return NextResponse.json({
-      message: 'Email verified successfully'
+      message: 'Email verified successfully',
+      verified: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
     });
   } catch (error) {
     console.error('Error verifying email:', error);

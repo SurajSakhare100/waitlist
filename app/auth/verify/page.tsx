@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export default function VerifyPage() {
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'already-verified'>('loading');
   const [message, setMessage] = useState('');
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -25,9 +27,14 @@ export default function VerifyPage() {
         const data = await response.json();
 
         if (response.ok) {
-          setStatus('success');
-          setMessage('Email verified successfully! Redirecting to dashboard...');
-          setTimeout(() => router.push('/dashboard'), 3000);
+          if (data.verified) {
+            setStatus('success');
+            setMessage('Email verified successfully! Redirecting to login...');
+            setTimeout(() => router.push('/auth/login'), 3000);
+          } else {
+            setStatus('error');
+            setMessage(data.error || 'Failed to verify email');
+          }
         } else {
           setStatus('error');
           setMessage(data.error || 'Failed to verify email');
@@ -50,13 +57,35 @@ export default function VerifyPage() {
           </h2>
           <div className="mt-4">
             {status === 'loading' && (
-              <p className="text-gray-600">Verifying your email...</p>
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                <p className="mt-4 text-gray-600">Verifying your email...</p>
+              </div>
             )}
             {status === 'success' && (
-              <p className="text-green-600">{message}</p>
+              <div className="text-green-600">
+                <p>{message}</p>
+              </div>
             )}
             {status === 'error' && (
-              <p className="text-red-600">{message}</p>
+              <div className="space-y-4">
+                <p className="text-red-600">{message}</p>
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => router.push('/auth/login')}
+                    className="w-full"
+                  >
+                    Go to Login
+                  </Button>
+                  <Button
+                    onClick={() => router.push('/auth/signup')}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Sign Up Again
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         </div>
