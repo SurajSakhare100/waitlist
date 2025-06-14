@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import jwt from 'jsonwebtoken'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/mongodb'
 import User from '@/models/User'
 import Waitlist from '@/models/Waitlist'
@@ -7,23 +8,21 @@ import Submission from '@/models/Submission'
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect()
-    
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user) {
       return NextResponse.json(
-        { message: 'No token provided' },
+        { error: 'Not authenticated' },
         { status: 401 }
       )
     }
 
-    const token = authHeader.split(' ')[1]
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any
+    await dbConnect()
     
-    const user = await User.findById(decoded.userId)
+    const user = await User.findOne({ email: session.user.email })
     if (!user) {
       return NextResponse.json(
-        { message: 'User not found' },
+        { error: 'User not found' },
         { status: 404 }
       )
     }
@@ -130,9 +129,9 @@ export async function GET(request: NextRequest) {
       recentSignups,
     })
   } catch (error) {
-    console.error('Analytics error:', error)
+    console.error('Error fetching analytics:', error)
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { error: 'Failed to fetch analytics data' },
       { status: 500 }
     )
   }

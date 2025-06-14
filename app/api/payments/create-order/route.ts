@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import jwt from 'jsonwebtoken'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import Razorpay from 'razorpay'
 import dbConnect from '@/lib/mongodb'
 import User from '@/models/User'
@@ -11,23 +12,21 @@ const razorpay = new Razorpay({
 
 export async function POST(request: NextRequest) {
   try {
-    await dbConnect()
-    
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user) {
       return NextResponse.json(
-        { message: 'No token provided' },
+        { error: 'Not authenticated' },
         { status: 401 }
       )
     }
 
-    const token = authHeader.split(' ')[1]
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any
-    
-    const user = await User.findById(decoded.userId)
+    await dbConnect()
+
+    const user = await User.findOne({ email: session.user.email })
     if (!user) {
       return NextResponse.json(
-        { message: 'User not found' },
+        { error: 'User not found' },
         { status: 404 }
       )
     }
@@ -41,18 +40,16 @@ export async function POST(request: NextRequest) {
 
     const { amount, currency } = await request.json()
 
-    const options = {
-      amount: amount, // amount in smallest currency unit (cents)
-      currency: currency || 'USD',
-      receipt: `receipt_${user._id}`,
+    const order = await razorpay.orders.create({
+      amount: amount * 100, // Convert to paise
+      currency,
+      receipt: `receipt_${Date.now()}`,
       notes: {
         userId: user._id.toString(),
         email: user.email,
         plan: 'pro',
       },
-    }
-
-    const order = await razorpay.orders.create(options)
+    })
 
     return NextResponse.json({
       orderId: order.id,
@@ -60,9 +57,9 @@ export async function POST(request: NextRequest) {
       currency: order.currency,
     })
   } catch (error) {
-    console.error('Create order error:', error)
+    console.error('Error creating order:', error)
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { error: 'Failed to create order' },
       { status: 500 }
     )
   }

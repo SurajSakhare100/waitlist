@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
     const user = await User.findOne({
       verificationToken: token,
-      verificationTokenExpires: { $gt: Date.now() },
+      verificationTokenExpiry: { $gt: new Date() }
     });
 
     if (!user) {
@@ -28,14 +28,17 @@ export async function GET(request: Request) {
       );
     }
 
+    // Update user verification status
     user.isVerified = true;
     user.verificationToken = undefined;
-    user.verificationTokenExpires = undefined;
+    user.verificationTokenExpiry = undefined;
     await user.save();
 
-    return NextResponse.json({ message: 'Email verified successfully' });
+    return NextResponse.json({
+      message: 'Email verified successfully'
+    });
   } catch (error) {
-    console.error('Verification error:', error);
+    console.error('Error verifying email:', error);
     return NextResponse.json(
       { error: 'Failed to verify email' },
       { status: 500 }

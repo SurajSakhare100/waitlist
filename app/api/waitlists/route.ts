@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json(
-        { message: 'Unauthorized' },
+        { error: 'Not authenticated' },
         { status: 401 }
       )
     }
@@ -21,22 +21,32 @@ export async function POST(request: NextRequest) {
     const user = await User.findOne({ email: session.user.email })
     if (!user) {
       return NextResponse.json(
-        { message: 'User not found' },
+        { error: 'User not found' },
         { status: 404 }
       )
     }
 
-    const data = await request.json()
-    
-    // Check if user has reached waitlist limit (free users get 1 waitlist)
-    const existingWaitlists = await Waitlist.countDocuments({ userId: user._id })
-    if (!user.isPremium && existingWaitlists >= 1) {
+    // Check if user is verified
+    if (!user.isVerified) {
       return NextResponse.json(
-        { message: 'Free users can create only 1 waitlist. Upgrade to Pro for unlimited waitlists.' },
+        { error: 'Please verify your email before creating a waitlist' },
         { status: 403 }
       )
     }
 
+    // Check if user is premium or has less than 3 waitlists
+    if (!user.isPremium) {
+      const waitlistCount = await Waitlist.countDocuments({ userId: user._id })
+      if (waitlistCount >= 3) {
+        return NextResponse.json(
+          { error: 'Free users can only create up to 3 waitlists. Please upgrade to Pro for unlimited waitlists.' },
+          { status: 403 }
+        )
+      }
+    }
+
+    const { name, description, fields } = await request.json()
+    
     // Force whiteLabel to false for free users
     if (!user.isPremium) {
       data.whiteLabel = false
@@ -47,7 +57,9 @@ export async function POST(request: NextRequest) {
 
     // Create waitlist
     const waitlist = await Waitlist.create({
-      ...data,
+      name,
+      description,
+      fields,
       userId: user._id,
       embedCode,
       referralCode: generateReferralCode(),
@@ -58,9 +70,9 @@ export async function POST(request: NextRequest) {
       waitlist,
     })
   } catch (error) {
-    console.error('Create waitlist error:', error)
+    console.error('Error creating waitlist:', error)
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { error: 'Failed to create waitlist' },
       { status: 500 }
     )
   }
@@ -71,7 +83,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return NextResponse.json(
-        { message: 'Unauthorized' },
+        { error: 'Not authenticated' },
         { status: 401 }
       )
     }
@@ -81,20 +93,20 @@ export async function GET(request: NextRequest) {
     const user = await User.findOne({ email: session.user.email })
     if (!user) {
       return NextResponse.json(
-        { message: 'User not found' },
+        { error: 'User not found' },
         { status: 404 }
       )
     }
 
-    const waitlists = await Waitlist.find({ userId: user._id }).sort({ createdAt: -1 })
+    const waitlists = await Waitlist.find({ userId: user._id })
 
     return NextResponse.json({
       waitlists,
     })
   } catch (error) {
-    console.error('Get waitlists error:', error)
+    console.error('Error fetching waitlists:', error)
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { error: 'Failed to fetch waitlists' },
       { status: 500 }
     )
   }

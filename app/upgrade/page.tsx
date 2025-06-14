@@ -6,57 +6,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CheckCircle, ArrowLeft, Crown, Zap, Shield, Globe, Palette, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 
 export default function UpgradePage() {
   const [isLoading, setIsLoading] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const { data: session, status } = useSession()
   const router = useRouter()
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) {
+    if (status === 'unauthenticated') {
       router.push('/auth/login')
       return
     }
 
-    fetchUserData()
-  }, [])
-
-  const fetchUserData = async () => {
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/dashboard', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
-        
-        // If user is already premium, redirect to dashboard
-        if (data.user.isPremium) {
-          router.push('/dashboard')
-        }
-      } else {
-        router.push('/auth/login')
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error)
+    // If user is already premium, redirect to dashboard
+    if (session?.user?.isPremium) {
+      router.push('/dashboard')
     }
-  }
+  }, [session, status, router])
 
   const handleUpgrade = async () => {
     setIsLoading(true)
 
     try {
-      const token = localStorage.getItem('token')
       const response = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           amount: 100, // $9 in cents
@@ -81,7 +57,6 @@ export default function UpgradePage() {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
               },
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
@@ -98,8 +73,8 @@ export default function UpgradePage() {
             }
           },
           prefill: {
-            name: user?.name,
-            email: user?.email,
+            name: session?.user?.name,
+            email: session?.user?.email,
           },
           theme: {
             color: '#9333ea',
@@ -119,6 +94,14 @@ export default function UpgradePage() {
     }
   }
 
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
       {/* Navigation */}
@@ -129,7 +112,6 @@ export default function UpgradePage() {
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Dashboard
                 </Button>
               </Link>
               <div className="h-6 w-px bg-gray-300" />
@@ -255,86 +237,7 @@ export default function UpgradePage() {
           </CardContent>
         </Card>
 
-        {/* Feature Highlights */}
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
-          <Card className="text-center">
-            <CardHeader>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-6 h-6 text-purple-600" />
-              </div>
-              <CardTitle>Unlimited Everything</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                Create unlimited waitlists and collect unlimited signups without any restrictions
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center">
-            <CardHeader>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Palette className="w-6 h-6 text-blue-600" />
-              </div>
-              <CardTitle>Advanced Customization</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                Full control over design, branding, and user experience with white-label options
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center">
-            <CardHeader>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <BarChart3 className="w-6 h-6 text-green-600" />
-              </div>
-              <CardTitle>Premium Analytics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                Detailed insights, conversion tracking, and growth analytics to optimize your campaigns
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* FAQ */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Frequently Asked Questions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Is this really a one-time payment?</h4>
-              <p className="text-gray-600">
-                Yes! Pay once and get lifetime access to all Pro features. No monthly or yearly subscriptions.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">What happens to my existing waitlists?</h4>
-              <p className="text-gray-600">
-                All your existing waitlists will remain active and you'll immediately get access to Pro features for all of them.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Do you offer refunds?</h4>
-              <p className="text-gray-600">
-                Yes, we offer a 30-day money-back guarantee. If you're not satisfied, we'll refund your payment.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Can I use my own domain?</h4>
-              <p className="text-gray-600">
-                Yes! Pro users can use custom domains for their waitlist forms and get a completely branded experience.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+       
       </div>
 
       {/* Razorpay Script */}
