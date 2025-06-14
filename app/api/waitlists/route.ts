@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import jwt from 'jsonwebtoken'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/mongodb'
 import User from '@/models/User'
 import Waitlist from '@/models/Waitlist'
@@ -7,20 +8,17 @@ import { generateReferralCode } from '@/lib/utils'
 
 export async function POST(request: NextRequest) {
   try {
-    await dbConnect()
-    
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
       return NextResponse.json(
-        { message: 'No token provided' },
+        { message: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const token = authHeader.split(' ')[1]
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any
+    await dbConnect()
     
-    const user = await User.findById(decoded.userId)
+    const user = await User.findOne({ email: session.user.email })
     if (!user) {
       return NextResponse.json(
         { message: 'User not found' },
@@ -47,25 +45,13 @@ export async function POST(request: NextRequest) {
     // Generate embed code
     const embedCode = `<iframe src="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/embed/WAITLIST_ID" width="100%" height="400" frameborder="0"></iframe>`
 
+    // Create waitlist
     const waitlist = await Waitlist.create({
+      ...data,
       userId: user._id,
-      title: data.title,
-      url: data.url,
-      description: data.description,
-      placeholderText: data.placeholderText,
-      buttonText: data.buttonText,
-      successMessage: data.successMessage,
-      showLogo: data.showLogo,
-      logoSize: data.logoSize,
-      showSocialProof: data.showSocialProof,
-      enableReferrals: data.enableReferrals,
-      whiteLabel: user.isPremium ? data.whiteLabel : false, // Only premium users can use white label
-      embedCode: embedCode.replace('WAITLIST_ID', ''), // Will be updated after creation
+      embedCode,
+      referralCode: generateReferralCode(),
     })
-
-    // Update embed code with actual ID
-    waitlist.embedCode = embedCode.replace('WAITLIST_ID', waitlist._id.toString())
-    await waitlist.save()
 
     return NextResponse.json({
       message: 'Waitlist created successfully',
@@ -82,20 +68,17 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect()
-    
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
       return NextResponse.json(
-        { message: 'No token provided' },
+        { message: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const token = authHeader.split(' ')[1]
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any
+    await dbConnect()
     
-    const user = await User.findById(decoded.userId)
+    const user = await User.findOne({ email: session.user.email })
     if (!user) {
       return NextResponse.json(
         { message: 'User not found' },

@@ -7,62 +7,49 @@ import { Plus, Users, TrendingUp, Mail, Settings, BarChart3, Eye, Pencil } from 
 import Link from "next/link"
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
+import { useSession, signOut } from 'next-auth/react'
 
 interface Waitlist {
   _id: string
-  title: string
+  name: string
   description: string
-  isActive: boolean
+  submissionCount: number
   createdAt: string
-  submissionCount?: number
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<any>(null)
   const [waitlists, setWaitlists] = useState<Waitlist[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+  const { data: session, status } = useSession()
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) {
+    if (status === 'unauthenticated') {
       router.push('/auth/login')
       return
     }
 
-    fetchUserData()
-  }, [])
+    if (status === 'authenticated') {
+      fetchWaitlists()
+    }
+  }, [status])
 
-  const fetchUserData = async () => {
+  const fetchWaitlists = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/dashboard', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-
+      const response = await fetch('/api/waitlists')
       if (response.ok) {
         const data = await response.json()
-        setUser(data.user)
         setWaitlists(data.waitlists)
-      } else {
-        router.push('/auth/login')
       }
     } catch (error) {
-      console.error('Error fetching user data:', error)
+      console.error('Error fetching waitlists:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    router.push('/auth/login')
-  }
-
   const handleCreateWaitlist = () => {
-    if (!user?.isPremium && waitlists.length >= 1) {
+    if (!session?.user?.isPremium && waitlists.length >= 1) {
       toast.error('Free users can create only 1 waitlist. Upgrade to Pro for unlimited waitlists.')
       router.push('/upgrade')
       return
@@ -70,8 +57,15 @@ export default function DashboardPage() {
     router.push('/dashboard/create')
   }
 
-  if (isLoading) {
-    return <div>Loading...</div>
+  if (isLoading || status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -89,15 +83,15 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome, {user?.name}</span>
-              {!user?.isPremium && (
+              <span className="text-sm text-gray-600">Welcome, {session?.user?.name}</span>
+              {!session?.user?.isPremium && (
                 <Link href="/upgrade">
                   <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
                     Upgrade to Pro
                   </Button>
                 </Link>
               )}
-              <Button variant="ghost" onClick={handleLogout}>
+              <Button variant="ghost" onClick={() => signOut()}>
                 Logout
               </Button>
             </div>
@@ -107,87 +101,55 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Subscribers</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {waitlists.reduce((acc, w) => acc + (w.submissionCount || 0), 0)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Waitlists</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {waitlists.filter(w => w.isActive).length}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Account Type</CardTitle>
-              <Mail className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {user?.isPremium ? 'Pro' : 'Free'}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Waitlists */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Your Waitlists</h2>
-          <Button 
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Your Waitlists</h1>
+          <Button
             onClick={handleCreateWaitlist}
             className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
           >
-            <Plus className="w-4 h-4 mr-2" />
             Create New Waitlist
           </Button>
         </div>
 
-        {/* Waitlist Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {waitlists.map((waitlist) => (
-            <Card key={waitlist._id}>
-              <CardHeader>
-                <CardTitle>{waitlist.title}</CardTitle>
-                <CardDescription>{waitlist.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-500">
-                    {waitlist.submissionCount || 0} subscribers
-                  </div>
-                  <div className="flex space-x-2">
-                    <Link href={`/dashboard/waitlist/${waitlist._id}`}>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
+        {waitlists.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <h3 className="text-lg font-medium text-gray-900">No waitlists yet</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Create your first waitlist to start collecting signups.
+                </p>
+                <Button
+                  onClick={handleCreateWaitlist}
+                  className="mt-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                >
+                  Create Waitlist
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {waitlists.map((waitlist) => (
+              <Card key={waitlist._id}>
+                <CardHeader>
+                  <CardTitle>{waitlist.name}</CardTitle>
+                  <CardDescription>{waitlist.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-center">
+                    <div className="text-sm text-gray-500">
+                      {waitlist.submissionCount} signups
+                    </div>
+                    <Link href={`/dashboard/${waitlist._id}`}>
+                      <Button variant="outline">View Details</Button>
                     </Link>
-                    <Link href={`/dashboard/waitlist/${waitlist._id}/edit`}>
-                      <Button variant="ghost" size="sm">
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                    </Link>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   )
