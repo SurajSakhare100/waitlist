@@ -1,3 +1,4 @@
+import { url } from 'inspector'
 import mongoose from 'mongoose'
 
 const WaitlistSchema = new mongoose.Schema({
@@ -12,6 +13,10 @@ const WaitlistSchema = new mongoose.Schema({
   },
   description: {
     type: String,
+  },
+  url: {
+    type: String,
+    required: true,
   },
   placeholderText: {
     type: String,

@@ -4,6 +4,19 @@ import Waitlist from '@/models/Waitlist'
 import Submission from '@/models/Submission'
 import { generateReferralCode } from '@/lib/utils'
 
+// Add OPTIONS handler
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    },
+  })
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -15,7 +28,13 @@ export async function POST(
     if (!waitlist || !waitlist.isActive) {
       return NextResponse.json(
         { message: 'Waitlist not found or inactive' },
-        { status: 404 }
+        { 
+          status: 404,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          }
+        }
       )
     }
 
@@ -24,7 +43,13 @@ export async function POST(
     if (!email || !email.includes('@')) {
       return NextResponse.json(
         { message: 'Valid email is required' },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          }
+        }
       )
     }
 
@@ -37,7 +62,13 @@ export async function POST(
     if (existingSubmission) {
       return NextResponse.json(
         { message: 'Email already registered' },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          }
+        }
       )
     }
 
@@ -97,12 +128,23 @@ export async function POST(
         position: submission.position,
         referralCode: submission.referralCode,
       },
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      }
     })
   } catch (error) {
     console.error('Submit to waitlist error:', error)
     return NextResponse.json(
       { message: 'Internal server error' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        }
+      }
     )
   }
 }

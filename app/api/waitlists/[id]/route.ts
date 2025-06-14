@@ -105,6 +105,7 @@ export async function PUT(
     Object.assign(waitlist, {
       title: data.title,
       description: data.description,
+      url: data.url,
       placeholderText: data.placeholderText,
       buttonText: data.buttonText,
       successMessage: data.successMessage,

@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
     const waitlist = await Waitlist.create({
       userId: user._id,
       title: data.title,
+      url: data.url,
       description: data.description,
       placeholderText: data.placeholderText,
       buttonText: data.buttonText,

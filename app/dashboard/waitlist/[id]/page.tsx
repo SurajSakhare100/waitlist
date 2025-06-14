@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input"
 import { ArrowLeft, Users, TrendingUp, Mail, Download, Search, Filter, Eye, Settings, Code, Share, Pencil } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from 'next/navigation'
+import { toast } from 'react-hot-toast'
+
+
 
 interface Submission {
   _id: string
@@ -34,6 +37,7 @@ export default function WaitlistDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showEmbedCode, setShowEmbedCode] = useState(false)
+  const [copiedPart, setCopiedPart] = useState<string | null>(null)
   const params = useParams()
   const router = useRouter()
 
@@ -104,7 +108,20 @@ export default function WaitlistDetailPage() {
     submission.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const embedCode = `<iframe src="${process.env.NEXT_PUBLIC_APP_URL || 'https://your-domain.com'}/embed/${params.id}" width="100%" height="400" frameborder="0"></iframe>`
+  const embedCode = {
+    css: `
+    <link rel="preload" href="${process.env.NEXT_PUBLIC_APP_URL}/waitlist.css" as="style">
+    <link rel="stylesheet" href="${process.env.NEXT_PUBLIC_APP_URL}/waitlist.css">`,
+    html: `<div id="waitlist-widget" data-form-id="${params.id}"></div>`,
+    script: `<script src="${process.env.NEXT_PUBLIC_APP_URL}/waitlist.js" defer></script>`
+  }
+
+  const handleCopy = (part: string, code: string) => {
+    navigator.clipboard.writeText(code)
+    setCopiedPart(part)
+    toast.success('Copied to clipboard')
+    setTimeout(() => setCopiedPart(null), 2000)
+  }
 
   if (isLoading) {
     return (
@@ -188,28 +205,122 @@ export default function WaitlistDetailPage() {
                 Embed Code
               </CardTitle>
               <CardDescription>
-                Copy this code to embed your waitlist form on any website
+                Add these snippets to your website
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-gray-100 p-4 rounded-lg">
-                <code className="text-sm text-gray-800 break-all">
-                  {embedCode}
-                </code>
+              <div className="space-y-3">
+                {/* CSS Link */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-gray-700">CSS Link</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 px-2 ${copiedPart === 'css' ? 'text-green-600' : 'text-gray-500 hover:text-gray-700'}`}
+                      onClick={() => handleCopy('css', embedCode.css)}
+                    >
+                      {copiedPart === 'css' ? (
+                        <span className="flex items-center text-xs">
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Copied
+                        </span>
+                      ) : (
+                        <span className="flex items-center text-xs">
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                          </svg>
+                          Copy
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="bg-gray-100 p-2 rounded text-sm">
+                    <code className="text-gray-800">{embedCode.css}</code>
+                  </div>
+                </div>
+
+                {/* HTML Element */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-gray-700">HTML Element</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 px-2 ${copiedPart === 'html' ? 'text-green-600' : 'text-gray-500 hover:text-gray-700'}`}
+                      onClick={() => handleCopy('html', embedCode.html)}
+                    >
+                      {copiedPart === 'html' ? (
+                        <span className="flex items-center text-xs">
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Copied
+                        </span>
+                      ) : (
+                        <span className="flex items-center text-xs">
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                          </svg>
+                          Copy
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="bg-gray-100 p-2 rounded text-sm">
+                    <code className="text-gray-800">{embedCode.html}</code>
+                  </div>
+                </div>
+
+                {/* JavaScript */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-gray-700">JavaScript</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 px-2 ${copiedPart === 'script' ? 'text-green-600' : 'text-gray-500 hover:text-gray-700'}`}
+                      onClick={() => handleCopy('script', embedCode.script)}
+                    >
+                      {copiedPart === 'script' ? (
+                        <span className="flex items-center text-xs">
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Copied
+                        </span>
+                      ) : (
+                        <span className="flex items-center text-xs">
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                          </svg>
+                          Copy
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="bg-gray-100 p-2 rounded text-sm">
+                    <code className="text-gray-800">{embedCode.script}</code>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between items-center mt-4">
-                <p className="text-sm text-gray-600">
-                  The form will automatically match your website's styling
-                </p>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(embedCode)
-                    // You could add a toast notification here
-                  }}
-                >
-                  Copy Code
-                </Button>
+
+              <div className="mt-4 p-3 bg-blue-50 rounded text-sm">
+                <div className="flex items-start space-x-2">
+                  <svg className="w-4 h-4 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <span className="font-medium text-blue-800">Quick Setup:</span>
+                    <ol className="mt-1 text-blue-700 space-y-1 list-decimal list-inside">
+                      <li>Add CSS to <code className="bg-blue-100 px-1 py-0.5 rounded">head</code></li>
+                      <li>Add HTML where you want the form</li>
+                      <li>Add JS before <code className="bg-blue-100 px-1 py-0.5 rounded">body</code> end</li>
+                    </ol>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

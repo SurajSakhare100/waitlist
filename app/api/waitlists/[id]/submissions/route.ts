@@ -4,6 +4,7 @@ import dbConnect from '@/lib/mongodb'
 import User from '@/models/User'
 import Waitlist from '@/models/Waitlist'
 import Submission from '@/models/Submission'
+import { ObjectId } from 'mongodb'
 
 export async function GET(
   request: NextRequest,
@@ -65,6 +66,108 @@ export async function GET(
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }
+    )
+  }
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  // Handle CORS preflight request
+  if (request.method === 'OPTIONS') {
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
+      },
+    })
+  }
+
+  try {
+    await dbConnect()
+    
+    // Get waitlist data
+    const waitlist = await Waitlist.findOne({ _id: params.id })
+    if (!waitlist) {
+      return NextResponse.json(
+        { message: 'Waitlist not found' },
+        { 
+          status: 404,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          }
+        }
+      )
+    }
+
+    const body = await request.json()
+    const { email } = body
+
+    if (!email) {
+      return NextResponse.json(
+        { message: 'Email is required' },
+        { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          }
+        }
+      )
+    }
+
+    // Check if email already exists
+    const existingSubmission = await Submission.findOne({
+      waitlistId: new ObjectId(params.id),
+      email: email.toLowerCase()
+    })
+
+    if (existingSubmission) {
+      return NextResponse.json(
+        { message: 'You have already joined this waitlist' },
+        { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          }
+        }
+      )
+    }
+
+    // Create new submission
+    const submission = await Submission.create({
+      waitlistId: new ObjectId(params.id),
+      email: email.toLowerCase(),
+      status: 'pending',
+      createdAt: new Date()
+    })
+
+    return NextResponse.json(
+      { message: 'Successfully joined waitlist', submission },
+      {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        }
+      }
+    )
+  } catch (error) {
+    console.error('Error submitting to waitlist:', error)
+    return NextResponse.json(
+      { message: 'Internal server error' },
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        }
+      }
     )
   }
 }

@@ -15,6 +15,7 @@ export default function CreateWaitlistPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    url:"",
     placeholderText: 'Enter your email',
     buttonText: 'Join the waitlist',
     successMessage: "Success! You're on the waitlist 🎉",
@@ -148,6 +149,17 @@ export default function CreateWaitlistPage() {
                         value={formData.description}
                         onChange={(e) => handleInputChange('description', e.target.value)}
                         rows={3}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="url">URL *</Label>
+                      <Input
+                        id="url"
+                        placeholder="https://habitpulse.xyz/"
+                        value={formData.url}
+                        onChange={(e) => handleInputChange('url', e.target.value)}
+                        required
                       />
                     </div>
 
