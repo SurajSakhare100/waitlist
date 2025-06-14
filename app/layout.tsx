@@ -7,11 +7,11 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'WaitlistBuilder - Create Beautiful Waitlist Forms',
   description: 'Build and manage waitlist signup forms with ease. Get early signups, track referrals, and grow your audience.',
-  viewport: 'width=device-width, initial-scale=1',
   icons: {
     icon: '/favicon.ico',
   },
 }
+
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
