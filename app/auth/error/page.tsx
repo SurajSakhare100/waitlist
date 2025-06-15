@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Card } from '@/components/ui/card';
+import { Card } from "components/ui/card";
 
 export default function AuthErrorPage() {
   const searchParams = useSearchParams();

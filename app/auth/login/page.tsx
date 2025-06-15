@@ -4,10 +4,10 @@ import { useState } from 'react'
 import Link from "next/link"
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Card } from 'components/ui/card';
+import { Button } from 'components/ui/button';
+import { Label } from 'components/ui/label';
+import { Input } from 'components/ui/input';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
