@@ -49,7 +49,7 @@ export default function CreateWaitlistPage() {
       const data = await response.json()
 
       if (response.ok) {
-        router.push(`/dashboard/waitlist/${data.waitlist._id}`)
+        router.push(`/dashboard/waitlist/${data._id}/edit`)
       } else {
         setError(data.message || 'Failed to create waitlist')
       }

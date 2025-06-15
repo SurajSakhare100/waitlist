@@ -42,12 +42,7 @@ export default function EditWaitlistPage() {
   const fetchWaitlist = async () => {
     try {
       setIsLoading(true)
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/waitlists/${params.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
+      const response = await fetch(`/api/waitlists/${params.id}`)
 
       if (response.ok) {
         const data = await response.json()

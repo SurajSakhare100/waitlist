@@ -4,32 +4,32 @@ import dbConnect from '@/lib/mongodb'
 import User from '@/models/User'
 import Waitlist from '@/models/Waitlist'
 import Submission from '@/models/Submission'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect()
-    
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
       return NextResponse.json(
-        { message: 'No token provided' },
+        { error: 'Not authenticated' },
         { status: 401 }
       )
     }
 
-    const token = authHeader.split(' ')[1]
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any
-    
-    const user = await User.findById(decoded.userId)
+    await dbConnect()
+
+    const user = await User.findOne({ email: session.user.email })
     if (!user) {
       return NextResponse.json(
-        { message: 'User not found' },
+        { error: 'User not found' },
         { status: 404 }
       )
     }
+
 
     const waitlist = await Waitlist.findOne({ _id: params.id, userId: user._id })
     if (!waitlist) {
@@ -63,7 +63,7 @@ export async function PUT(
 ) {
   try {
     await dbConnect()
-    
+
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -74,7 +74,7 @@ export async function PUT(
 
     const token = authHeader.split(' ')[1]
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any
-    
+
     const user = await User.findById(decoded.userId)
     if (!user) {
       return NextResponse.json(
@@ -92,7 +92,7 @@ export async function PUT(
     }
 
     const data = await request.json()
-    
+
     // Check if user is trying to enable white label without premium
     if (data.whiteLabel && !user.isPremium) {
       return NextResponse.json(
@@ -138,7 +138,7 @@ export async function DELETE(
 ) {
   try {
     await dbConnect()
-    
+
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -149,7 +149,7 @@ export async function DELETE(
 
     const token = authHeader.split(' ')[1]
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any
-    
+
     const user = await User.findById(decoded.userId)
     if (!user) {
       return NextResponse.json(
@@ -168,7 +168,7 @@ export async function DELETE(
 
     // Delete all submissions for this waitlist
     await Submission.deleteMany({ waitlistId: waitlist._id })
-    
+
     // Delete the waitlist
     await Waitlist.deleteOne({ _id: waitlist._id })
 

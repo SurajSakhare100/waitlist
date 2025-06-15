@@ -11,9 +11,9 @@ import { useSession, signOut } from 'next-auth/react'
 
 interface Waitlist {
   _id: string
-  name: string
+  title: string
   description: string
-  submissionCount: number
+  submission: number
   createdAt: string
 }
 
@@ -133,15 +133,15 @@ export default function DashboardPage() {
             {waitlists.map((waitlist) => (
               <Card key={waitlist._id}>
                 <CardHeader>
-                  <CardTitle>{waitlist.name}</CardTitle>
+                  <CardTitle>{waitlist.title}</CardTitle>
                   <CardDescription>{waitlist.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-gray-500">
-                      {waitlist.submissionCount} signups
+                      {waitlist.submission} signups
                     </div>
-                    <Link href={`/dashboard/${waitlist._id}`}>
+                    <Link href={`/dashboard/waitlist/${waitlist._id}/edit`}>
                       <Button variant="outline">View Details</Button>
                     </Link>
                   </div>

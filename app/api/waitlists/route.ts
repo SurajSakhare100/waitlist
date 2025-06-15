@@ -45,19 +45,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { name, description, fields } = await request.json()
+    const { title,url, description, fields } = await request.json()
     
     // Force whiteLabel to false for free users
-    if (!user.isPremium) {
-      data.whiteLabel = false
-    }
+    // if (!user.isPremium) {
+    //   data.whiteLabel = false
+    // }
 
     // Generate embed code
     const embedCode = `<iframe src="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/embed/WAITLIST_ID" width="100%" height="400" frameborder="0"></iframe>`
 
     // Create waitlist
     const waitlist = await Waitlist.create({
-      name,
+      title,
+      url,
       description,
       fields,
       userId: user._id,
